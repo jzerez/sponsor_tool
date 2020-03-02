@@ -14,13 +14,18 @@ from page import Page
 from collections import deque
 import pdb
 class Website:
-    def __init__(self, url, query=None):
+    def __init__(self, url, domain=None, query=None, row_num=None):
         # Main Website Attributes
-        self.domain = urlparse(url).netloc
+        if not domain:
+            self.domain = urlparse(url).netloc
+        else:
+            self.domain = domain
+
         self.base_url = url
         self.origin_query = query
+        self.row_num = row_num
 
-        self.email_sent = False;
+        self.explored = False;
 
         # adjacency list for the graph of the website
         self.adj_list = {}
@@ -32,8 +37,9 @@ class Website:
         # a histogram representing the frequency of categories of keywords
         # ex: edu_keywords where found 55 times in the website
         self.hist = {}
+        self.location = None
 
-    def explore_links(self, queue, max_pages=25):
+    def explore_links(self, queue, keywords, max_pages=25):
         """
         Populates the graph of the Website using DFS
 
@@ -53,7 +59,7 @@ class Website:
             if child_url in self.all_links:
                 continue
             print('url: ', child_url)
-            child_page = Page(child_url, self.domain)
+            child_page = Page(child_url, keywords, self.domain)
 
 
             # once explored, add to adj_list
@@ -66,8 +72,9 @@ class Website:
             # add url of child to set of visited links
             self.all_links.add(child_page.url)
             self.emails.update(child_page.emails)
-            self.combine_hist(child_page.make_text_hist())
+            self.combine_hist(child_page.text_hist)
             num_visted += 1
+        self.explored = True
 
     def combine_hist(self, hist):
         """
@@ -80,15 +87,23 @@ class Website:
             count = self.hist.get(key, 0) + hist[key]
             self.hist[key] = count
 
+    def get_top_keywords(self, num=3):
+        top_items = sorted(self.hist.items(), key=lambda x: x[1])
+        if len(top_items) > num:
+            top_keys = top_items[:num]
+        if not top_items:
+            return None
+        else:
+            return [i[0] for i in top_keys]
 
 if __name__ == "__main__":
     import time
-    site = Website('https://cimquest-inc.com/')
-    start = time.time()
-    site.explore_links(deque([site.base_url]), max_pages=50)
-    print(time.time()-start)
-    print(site.all_links)
-    print(site.adj_list)
-    print(site.emails)
-    print(site.hist)
-    pdb.set_trace()
+    # site = Website('https://cimquest-inc.com/')
+    # start = time.time()
+    # site.explore_links(deque([site.base_url]), max_pages=50)
+    # print(time.time()-start)
+    # print(site.all_links)
+    # print(site.adj_list)
+    # print(site.emails)
+    # print(site.hist)
+    # pdb.set_trace()

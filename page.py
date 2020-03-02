@@ -9,12 +9,11 @@ page
 from bs4 import BeautifulSoup
 import urllib
 import pdb
-import keywords
 
 class Page():
-    def __init__(self, url, domain=None):
+    def __init__(self, url, keywords, domain=None):
         self.url = url
-        
+
         # set domain
         if domain is None:
             self.domain = urllib.urlparse(url).netloc
@@ -30,8 +29,7 @@ class Page():
         # set of all emails found on the page
         self.emails = set()
         # a histogram representing the frequency of categories of keywords
-        # ex: edu_keywords where found 55 times in the website
-        self.text_hist = self.make_text_hist()
+        self.text_hist = self.make_text_hist(keywords)
         # list of all child links that belong to the domain of the site
         self.links = self.find_links()
 
@@ -56,7 +54,7 @@ class Page():
         self.explored = True
         return links
 
-    def make_text_hist(self):
+    def make_text_hist(self, keywords):
         """
         Gets text of current page, creates and returns histogram based on
         defined keywords
@@ -64,10 +62,8 @@ class Page():
         text_hist = {}
         text = self.page.get_text()
         for word in text.split():
-            if word in keywords.keywords.keys():
-                category = keywords.keywords[word]
-                text_hist[category] = text_hist.get(category, 0) + 1
-
+            if word in keywords:
+                text_hist[word] = text_hist.get(word, 0) + 1
         return text_hist
 
 if __name__ == "__main__":

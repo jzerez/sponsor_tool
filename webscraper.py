@@ -10,9 +10,9 @@ from googlesearch import search
 from urllib.parse import urlparse
 import pdb
 import pprint
-from blacklist import *
-from visited_sites import *
-from queries import *
+# from blacklist import *
+# from visited_sites import *
+# from queries import *
 import time
 
 tld = 'com'
@@ -26,13 +26,22 @@ except ImportError:
     print("`pip install beautifulsoup4`")
     print("`pip install google`")
 
-domains = set()
 
-for query in queries:
-    responses = search(query, tld=tld, num=num, stop=num, pause=2)
-    for response in responses:
-        domains.add(response)
-        time.sleep(1)
-    break
+def gsearch(queries, num_queries=1, num_url_per_query=10):
+    responses = []
+    num_searches = 0
 
-print(domains)
+    for query, row_num in queries:
+        results = search(query, tld=tld, num=num_url_per_query, stop=num_url_per_query, pause=2)
+        num_searches += 1
+        for url in results:
+            domain = urlparse(url).netloc
+            response = {}
+            response['url'] = url
+            response['domain'] = domain
+            response['query'] = query
+            response['row_num'] = row_num
+            responses.append(response)
+        if num_searches >= num_queries:
+            break
+    return responses
