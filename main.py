@@ -6,6 +6,22 @@ import pprint as pp
 import pdb
 
 def init(verbose=False):
+    """
+    initialize the spreadsheet object and associated supporting data structures
+    for a scraping/quering session
+
+    Parameters:
+        verbose (bool): toggles progress printing
+
+    Returns:
+        spreadsheet (Spreadsheet): the target spreadsheet
+        controls (dict): contains the contents of the controls sheet
+        blacklist (list): a list of blacklisted domains and company names
+        keywords (set): the set of all keywords
+        seen_domains (set): a list of domains that have been already been found
+                            before and exsist in the domain column of the
+                            results worksheet
+    """
     spreadsheet = open_spreadsheet()
     if verbose: print('Spreadsheet accessed successfully')
 
@@ -24,13 +40,33 @@ def init(verbose=False):
     return spreadsheet, controls, blacklist, keywords, seen_domains
 
 def perform_query(spreadsheet, controls, blacklist, seen_domains):
+    """
+    Performs a google search on a set of queries and stores fetched domains/urls
+
+    Parameters:
+        spreadsheet (Spreadsheet): the target spreadsheet
+        controls (dict): contains the contents of the controls sheet
+        blacklist (list): a list of blacklisted domains and company names
+        seen_domains (set): a list of domains that have been already been found
+                            before and exsist in the domain column of the
+                            results worksheet
+
+    """
     queries = get_queries_to_search(spreadsheet)
     responses = webscraper.gsearch(queries,
                                    controls['num_queries_per_session'],
                                    controls['num_url_per_query'])
     store_query_responses(spreadsheet, responses, blacklist, seen_domains)
 
-def scrape_site(spreadsheet, controls, keywords):
+def scrape_sites(spreadsheet, controls, keywords):
+    """
+    Performs DFS on a series of unexplored sites, store data in results worksheet
+
+    Parameters:
+        spreadsheet (Spreadsheet): the target spreadsheet
+        controls (dict): contains the contents of the controls sheet
+        keywords (set): the set of all keywords
+    """
     website_data = get_website_data_for_scrape(spreadsheet,
                                                controls['num_websites_per_session'])
     for data in website_data:
@@ -53,6 +89,6 @@ if __name__ == "__main__":
     if controls['perform_scrape']:
         print('Performing scrape on ', controls['num_websites_per_session'], ' websites.')
         print('Each website will have ', controls['num_pages_per_website'], 'pages explored.')
-        scrape_site(spreadsheet, controls, keywords)
+        scrape_sites(spreadsheet, controls, keywords)
     else:
         print('Skipping scrape')
