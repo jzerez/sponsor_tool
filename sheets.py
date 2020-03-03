@@ -12,6 +12,7 @@ import pprint as pp
 import os
 from datetime import date
 import pdb
+import numpy as np
 
 HEADER_OFFSET = 1
 
@@ -34,7 +35,8 @@ def open_spreadsheet(name="Sponsorship Bot", creds_file='creds/client_secret.jso
         google sheets GUI
     """
     # credentials are needed for both google drive API and google sheets
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    scope = ['https://spreadsheets.google.com/feeds',
+             'https://www.googleapis.com/auth/drive']
 
     # ensure credential file exsists in the /creds folder
     assert os.path.isfile(creds_file), "API private authentication missing."
@@ -164,12 +166,39 @@ def get_last_row(sheet, col):
     all_cols = sheet.col_values(col)
     return len(all_cols)
 
-def get_queries_to_search(spreadsheet):
+def update_range(sheet, row_range, col_range, new_data):
+    """
+    Takes a number of cells in a single row and updates their values at once
+
+    Parameters:
+        sheet (Worksheet): the target worksheet
+        row_range (tuple): a pair of ints that denote the row limits of the
+                           desired range
+        col_range (tuple/list): a pair of chars that represent the column limits
+                                of the desired range
+        new_data (list of tuples): the new data to be populated in the cell range
+    """
+    data_arr = np.array(new_data)
+    num_cols = ord(col_range[1]) - ord(col_range[0]) + 1
+    num_rows = row_range[1] - row_range[0] + 1
+
+    pdb.set_trace()
+    assert data_arr.shape == (num_rows, num_cols)
+
+    cell_range = col_range[0].upper() + str(row_range[0]) +":" + col_range[1].upper() + str(row_range[1])
+    cell_list = sheet.range(cell_range)
+
+    for cell, data in zip(cell_list, data_arr.flatten()):
+        cell.value = data
+    sheet.update_cells(cell_list)
+
+def get_queries_to_search(spreadsheet, num_queries_per_session):
     """
     Fetches queries that have yet to  be searched
 
     Parameters:
         spreadsheet (Spreadsheet): the target spreadsheet
+        num_queries_per_session (int): number of queries to search
 
     Returns:
         queries_to_search (list): A list of tuples containing queries that have
@@ -195,6 +224,7 @@ def get_queries_to_search(spreadsheet):
     for query, date, row_num in zip(all_queries, dates, row_nums):
         if not date.value or date.value.lower()=='null':
             queries_to_search.append((query, row_num))
+        if len(queries_to_search) >= num_queries_per_session: break
     return queries_to_search
 
 def store_query_responses(spreadsheet, responses, blacklist, seen_domains):
@@ -217,7 +247,9 @@ def store_query_responses(spreadsheet, responses, blacklist, seen_domains):
     first_empty_row = get_last_row(results_sheet, 1) + 1
     queries_updated = set()
 
-    for response in responses:
+    response_data = np.empty((0, 4), dtype='<U21')
+
+    for row, response in enumerate(responses):
         valid = True
         # Only update the query date cell once, and not once for each response
         if response['query'] not in queries_updated:
@@ -236,12 +268,16 @@ def store_query_responses(spreadsheet, responses, blacklist, seen_domains):
         # If the domain is unique and not blacklisted, add it to the results
         # sheet
         if valid:
-            results_sheet.update_cell(first_empty_row, 1, response['domain'])
-            results_sheet.update_cell(first_empty_row, 2, response['url'])
-            results_sheet.update_cell(first_empty_row, 3, response['query'])
-            results_sheet.update_cell(first_empty_row, 4, 'No')
-            first_empty_row += 1
+            new_data = (response['domain'],
+                        response['url'],
+                        response['query'],
+                        'No')
+            response_data = np.vstack((response_data, new_data))
             seen_domains.add(domain)
+    row_range = (first_empty_row, first_empty_row + response_data.shape[0] - 1)
+    col_range = ('A', 'D')
+    pdb.set_trace()
+    update_range(results_sheet, row_range, col_range, response_data)
 
 def get_website_data_for_scrape(spreadsheet, num_websites_per_session):
     """
@@ -262,11 +298,15 @@ def get_website_data_for_scrape(spreadsheet, num_websites_per_session):
     sheet = get_results_sheet(spreadsheet)
     # find all of the domains that have not been flagged as searched
     searched_row = sheet.col_values(4)[1:]
+
     inds = []
+    num_websites_added = 0
     for row, was_searched in enumerate(searched_row):
-        if row >= num_websites_per_session:
+        if num_websites_added >= num_websites_per_session:
             break
-        if was_searched=="No": inds.append(row+2)
+        if was_searched=="No" or not was_searched:
+            inds.append(row+2)
+            num_websites_added += 1
 
     website_data = []
     for ind in inds:

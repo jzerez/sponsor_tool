@@ -52,10 +52,8 @@ def perform_query(spreadsheet, controls, blacklist, seen_domains):
                             results worksheet
 
     """
-    queries = get_queries_to_search(spreadsheet)
-    responses = webscraper.gsearch(queries,
-                                   controls['num_queries_per_session'],
-                                   controls['num_url_per_query'])
+    queries = get_queries_to_search(spreadsheet, controls['num_queries_per_session'])
+    responses = webscraper.gsearch(queries, controls['num_url_per_query'])
     store_query_responses(spreadsheet, responses, blacklist, seen_domains)
 
 def scrape_sites(spreadsheet, controls, keywords):
@@ -74,21 +72,34 @@ def scrape_sites(spreadsheet, controls, keywords):
         base_url = data[1]
         query = data[2]
         row_num = data[3]
+        print('scraping from', base_url)
         site = website.Website(base_url, domain, query, row_num)
         site.explore_links(deque([site.base_url]), keywords, max_pages=controls['num_pages_per_website'])
         store_scrape_results(spreadsheet, site, controls['auto_email'])
 
 if __name__ == "__main__":
+    import time
+    t0 = time.time()
     spreadsheet, controls, blacklist, keywords, seen_domains = init(True)
+    t_init = time.time() - t0
     if controls['perform_query']:
-        print('Performing Query on ', controls['num_queries_per_session'], ' search terms')
+        print('Performing Query on', controls['num_queries_per_session'], 'search terms')
+        t0 = time.time()
         perform_query(spreadsheet, controls, blacklist, seen_domains)
+        t_query = time.time() - t0
     else:
         print('Skipping Query')
 
     if controls['perform_scrape']:
-        print('Performing scrape on ', controls['num_websites_per_session'], ' websites.')
-        print('Each website will have ', controls['num_pages_per_website'], 'pages explored.')
+        print('Performing scrape on', controls['num_websites_per_session'], 'websites.')
+        print('Each website will have', controls['num_pages_per_website'], 'pages explored.')
+        t0 = time.time()
         scrape_sites(spreadsheet, controls, keywords)
+        t_scrape = time.time() - t0
     else:
         print('Skipping scrape')
+
+    print('Session Completed')
+    print('initialization time was:', t_init)
+    print('query time (',controls['num_queries_per_session'],'queries with',controls['num_url_per_query'],'urls completed in: ', t_query)
+    print('scrape time (',controls['num_websites_per_session'], 'websites with',controls['num_pages_per_website'],'pages seen in: ', t_scrape)

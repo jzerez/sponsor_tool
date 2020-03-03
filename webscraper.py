@@ -27,21 +27,17 @@ except ImportError:
     print("`pip install google`")
 
 
-def gsearch(queries, num_queries=1, num_url_per_query=10):
+def gsearch(queries, num_url_per_query=10):
     responses = []
-    num_searches = 0
-
     for query, row_num in queries:
-        results = search(query, tld=tld, num=num_url_per_query, stop=num_url_per_query, pause=2)
-        num_searches += 1
+        results = search(query, tld=tld, num=num_url_per_query, stop=num_url_per_query, pause=0.5)
         for url in results:
             domain = urlparse(url).netloc
+            print(domain)
             response = {}
             response['url'] = url
             response['domain'] = domain
             response['query'] = query
             response['row_num'] = row_num
             responses.append(response)
-        if num_searches >= num_queries:
-            break
     return responses

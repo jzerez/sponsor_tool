@@ -3,7 +3,7 @@ Spring 2020
 Jonathan Zerez
 
 Object that facilitates the graph associated with a specific domain (ex: cimquest-inc.com)
--Performs DFS to find pages in domain
+-Performs BFS to find pages in domain
 -Extracts email addresses
 -Extracts keywords to learn more about the company
 """
@@ -41,7 +41,7 @@ class Website:
 
     def explore_links(self, queue, keywords, max_pages=25):
         """
-        Populates the graph of the Website using DFS
+        Populates the graph of the Website using BFS
 
         queue: a collections.deque object that contains the first page(s)
                to start searching from
@@ -60,7 +60,13 @@ class Website:
                 continue
             print('url: ', child_url)
             child_page = Page(child_url, keywords, self.domain)
-
+            # import pprint as pp
+            # pp.pprint(child_page.page)
+            # pdb.set_trace()
+            # pp.pprint(child_page.page.find_all('a'))
+            # pdb.set_trace()
+            if not child_page.request_successful:
+                continue
 
             # once explored, add to adj_list
             adj = self.adj_list.get(child_page.url, [])
@@ -90,20 +96,14 @@ class Website:
     def get_top_keywords(self, num=3):
         top_items = sorted(self.hist.items(), key=lambda x: x[1])
         if len(top_items) > num:
-            top_keys = top_items[:num]
+            top_items = top_items[:num]
         if not top_items:
             return None
         else:
-            return [i[0] for i in top_keys]
+            return [i[0] for i in top_items]
 
 if __name__ == "__main__":
     import time
-    # site = Website('https://cimquest-inc.com/')
-    # start = time.time()
-    # site.explore_links(deque([site.base_url]), max_pages=50)
-    # print(time.time()-start)
-    # print(site.all_links)
-    # print(site.adj_list)
-    # print(site.emails)
-    # print(site.hist)
-    # pdb.set_trace()
+    site = Website('https://www.atprecision.com/cnc-machine-shop-serving/boston-massachusetts-machining.php')
+    site.explore_links(deque([site.base_url]), ['circuit'])
+    print(site.emails)
