@@ -11,6 +11,7 @@ from urllib.request import urlopen
 from urllib.parse import urlparse
 from urllib.error import HTTPError
 from urllib.request import Request
+from urllib.error import URLError
 
 import pdb
 
@@ -40,7 +41,7 @@ class Page():
             self.text_hist = self.make_text_hist(keywords)
             # list of all child links that belong to the domain of the site
             self.links = self.find_links()
-        except (ValueError, HTTPError) as e:
+        except (ValueError, HTTPError, URLError) as e:
             print('Warning, the following error was encountered')
             print(e)
 

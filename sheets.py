@@ -296,26 +296,28 @@ def get_website_data_for_scrape(spreadsheet, num_websites_per_session):
             (Domain, Original URL, Query, row number)
     """
     sheet = get_results_sheet(spreadsheet)
+    last_row = get_last_row(sheet, 4)
     # find all of the domains that have not been flagged as searched
     searched_row = sheet.col_values(4)[1:]
 
+    # Get all of the cells with headers Domain, Original URL, and Query
+    cell_range = 'A2:C'+str(last_row)
+    cell_list = np.array(sheet.range(cell_range))
+    cell_list = np.reshape(cell_list, (int(len(cell_list)/3), 3))
+
     inds = []
     num_websites_added = 0
-    for row, was_searched in enumerate(searched_row):
+    website_data = []
+    for i, was_searched in enumerate(searched_row):
         if num_websites_added >= num_websites_per_session:
             break
         if was_searched=="No" or not was_searched:
-            inds.append(row+2)
+            ind = i+2
+            inds.append(ind)
+            values = tuple([cell.value for cell in cell_list[i]] + [ind])
+            website_data.append(values)
             num_websites_added += 1
-
-    website_data = []
-    for ind in inds:
-        # get the appropriate cells A-C
-        # this corresponds to: (domain, original url, query)
-        target_cell_range = "A"+str(ind)+":"+"C"+str(ind)
-        cell_list = sheet.range(target_cell_range)
-        values = tuple([cell.value for cell in cell_list] + [ind])
-        website_data.append(values)
+    pdb.set_trace()
     return website_data
 
 def store_scrape_results(spreadsheet, website, auto_email):
