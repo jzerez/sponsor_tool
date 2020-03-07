@@ -34,7 +34,7 @@ class Page():
         try:
             # open up the URL
             request = Request(url, None, header)
-            response = urlopen(request)
+            response = urlopen(request, timeout=20)
             self.page = BeautifulSoup(response.read(), "lxml")
 
             # a histogram representing the frequency of categories of keywords
