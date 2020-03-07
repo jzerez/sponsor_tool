@@ -59,12 +59,10 @@ class Website:
             if child_url in self.all_links:
                 continue
             print('url: ', child_url)
-            child_page = Page(child_url, keywords, self.domain)
-            # import pprint as pp
-            # pp.pprint(child_page.page)
-            # pdb.set_trace()
-            # pp.pprint(child_page.page.find_all('a'))
-            # pdb.set_trace()
+            if child_url==self.base_url or child_url==self.domain or 'contact' in child_url:
+                use_selenium = True
+            child_page = Page(child_url, keywords, self.domain, use_selenium=use_selenium)
+
             if not child_page.request_successful:
                 continue
 
@@ -73,8 +71,11 @@ class Website:
             adj.extend(child_page.links)
             self.adj_list[child_page.url] = adj
 
+            priority_links, other_links = child_page.filter_links()
             # add links to queue
-            queue.extend(child_page.links)
+            queue.extend(other_links)
+            queue.extendleft(priority_links[::-1])
+            pdb.set_trace()
             # add url of child to set of visited links
             self.all_links.add(child_page.url)
             self.emails.update(child_page.emails)

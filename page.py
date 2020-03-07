@@ -12,11 +12,12 @@ from urllib.parse import urlparse
 from urllib.error import HTTPError
 from urllib.request import Request
 from urllib.error import URLError
+from selenium import webdriver
 
 import pdb
 
 class Page():
-    def __init__(self, url, keywords, domain=None):
+    def __init__(self, url, keywords, domain=None, use_selenium=False):
         self.url = url
         self.tld = urlparse(url).hostname
         header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -40,7 +41,7 @@ class Page():
             # a histogram representing the frequency of categories of keywords
             self.text_hist = self.make_text_hist(keywords)
             # list of all child links that belong to the domain of the site
-            self.links = self.find_links()
+            self.links = self.find_links(use_selenium)
         except (ValueError, HTTPError, URLError) as e:
             print('Warning, the following error was encountered')
             print(e)
@@ -48,9 +49,20 @@ class Page():
             self.request_successful = False
             pass
 
-    def find_links(self):
+    def find_links(self, use_selenium=True):
         """
         Finds all of the links referenced on the page and returns them as a list
+        """
+        links = self.find_links_html()
+        if use_selenium:
+            emails = self.find_emails_selenium()
+            self.emails.update(emails)
+        return links
+
+    def find_links_html(self):
+        """
+        Finds all of the links referenced on the page and returns them as a list
+        simply uses the html recieved from urlopen to look for links
         """
         links = []
         for link in self.page.find_all('a'):
@@ -81,10 +93,33 @@ class Page():
 
             # Make sure to reject external links
             elif self.domain in url:
-
                 links.append(url)
+
         self.explored = True
         return links
+
+    def find_emails_selenium(self):
+        """
+        Opens the page using selenium webdriver, and subsequently fetches emails
+        """
+        # Initialize the driver
+        chrome_path = r"/usr/bin/chromedriver"
+        driver = webdriver.Chrome(chrome_path)
+        driver.get(self.url)
+
+        # wait for site to load assets
+        import time
+        time.sleep(1)
+
+        # get all hrefs from all <a> tags in the page
+        links = driver.find_elements_by_xpath("//a")
+        hrefs = [link.get_attribute("href") for link in links]
+
+
+        # get emails from hrefs
+        emails = [href for href in hrefs if href and "mailto:" in href]
+
+        return emails
 
     def make_text_hist(self, keywords):
         """
@@ -100,12 +135,23 @@ class Page():
                 self.emails.add(word)
         return text_hist
 
+    def filter_links(self, keywords=['contact', 'contact-us']):
+        priority_links = []
+        other_links = []
+
+        for link in self.links:
+            added=False
+            for keyword in keywords:
+                if keyword in link.lower():
+                    priority_links.append(link)
+                    added = True
+                    break
+            if not added:
+                other_links.append(link)
+        priority_links.sort(key=lambda x: len(x))
+        return priority_links, other_links
+
+
 if __name__ == "__main__":
-    print(keywords.c2)
-    # n = Node("https://cimquest-inc.com/");
-    # neigh = n.find_links()
-    #
-    # print(len(neigh))
-    # print(type(neigh))
-    # print(n.domain)
-    # print(n.emails)
+    p = Page('https://bostonlasers.com/contact', ['lmao'], use_selenium=True)
+    print(p.emails)
