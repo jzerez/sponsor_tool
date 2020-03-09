@@ -101,5 +101,7 @@ if __name__ == "__main__":
 
     print('Session Completed')
     print('initialization time was:', t_init)
-    print('query time (',controls['num_queries_per_session'],'queries with',controls['num_url_per_query'],'urls completed in: ', t_query)
-    print('scrape time (',controls['num_websites_per_session'], 'websites with',controls['num_pages_per_website'],'pages seen in: ', t_scrape)
+    if controls['perform_query']:
+        print('query time (',controls['num_queries_per_session'],'queries with',controls['num_url_per_query'],'urls completed in: ', t_query)
+    if controls['perform_scrape']:
+        print('scrape time (',controls['num_websites_per_session'], 'websites with',controls['num_pages_per_website'],'pages seen in: ', t_scrape)
