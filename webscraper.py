@@ -30,7 +30,8 @@ except ImportError:
 def gsearch(queries, num_url_per_query=10):
     responses = []
     for query, row_num in queries:
-        results = search(query, tld=tld, num=num_url_per_query, stop=num_url_per_query, pause=0.5)
+        results = search(query, tld=tld, num=num_url_per_query, stop=num_url_per_query, pause=6)
+        time.sleep(0.7)
         for url in results:
             domain = urlparse(url).netloc
             print(domain)

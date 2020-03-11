@@ -4,6 +4,7 @@ from sheets import *
 from collections import deque
 import pprint as pp
 import pdb
+import email_client_oem as email_util
 
 def init(verbose=False):
     """
@@ -77,6 +78,21 @@ def scrape_sites(spreadsheet, controls, keywords):
         site.explore_links(deque([site.base_url]), keywords, max_pages=controls['num_pages_per_website'])
         store_scrape_results(spreadsheet, site, controls['auto_email'])
 
+def send_emails(spreadsheet, controls):
+    """
+    Sends emails to all authorized and unsent emails
+
+    Parameters:
+        spreadsheet (Spreadsheet): the target spreadsheet
+        controls (dict): contains the contents of the controls sheet
+    """
+    email_body = get_email_body(spreadsheet)
+    emails, rows = get_email_addresses(spreadsheet)
+    for email in emails:
+        email_util.send_email(email, email_body)
+    store_email_history(spreadsheet, rows)
+
+
 if __name__ == "__main__":
     import time
     t0 = time.time()
@@ -98,6 +114,8 @@ if __name__ == "__main__":
         t_scrape = time.time() - t0
     else:
         print('Skipping scrape')
+
+    send_emails(spreadsheet, controls)
 
     print('Session Completed')
     print('initialization time was:', t_init)

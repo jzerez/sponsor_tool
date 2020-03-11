@@ -59,6 +59,9 @@ def get_keywords_sheet(spreadsheet):
 def get_results_sheet(spreadsheet):
     return spreadsheet.worksheet("Results")
 
+def get_email_sheet(spreadsheet):
+    return spreadsheet.worksheet("Email")
+
 def get_controls(spreadsheet):
     """
     Get control variables from the controls worksheet of the spreadsheet
@@ -182,7 +185,6 @@ def update_range(sheet, row_range, col_range, new_data):
     num_cols = ord(col_range[1]) - ord(col_range[0]) + 1
     num_rows = row_range[1] - row_range[0] + 1
 
-    pdb.set_trace()
     assert data_arr.shape == (num_rows, num_cols)
 
     cell_range = col_range[0].upper() + str(row_range[0]) +":" + col_range[1].upper() + str(row_range[1])
@@ -276,7 +278,6 @@ def store_query_responses(spreadsheet, responses, blacklist, seen_domains):
             seen_domains.add(domain)
     row_range = (first_empty_row, first_empty_row + response_data.shape[0] - 1)
     col_range = ('A', 'D')
-    pdb.set_trace()
     update_range(results_sheet, row_range, col_range, response_data)
 
 def get_website_data_for_scrape(spreadsheet, num_websites_per_session):
@@ -317,7 +318,6 @@ def get_website_data_for_scrape(spreadsheet, num_websites_per_session):
             values = tuple([cell.value for cell in cell_list[i]] + [ind])
             website_data.append(values)
             num_websites_added += 1
-    pdb.set_trace()
     return website_data
 
 def store_scrape_results(spreadsheet, website, auto_email):
@@ -368,8 +368,52 @@ def store_scrape_results(spreadsheet, website, auto_email):
         cell_list[5].value = "No"
     sheet.update_cells(cell_list)
 
+def get_email_body(spreadsheet):
+    """
+    Fetches the current email draft stored in the email worksheet
 
+    Parameters:
+        spreadsheet (Spreadsheet): the target spreadsheet object
 
+    Returns:
+        email_body (string): The body of the email to send
+    """
+    sheet = get_email_sheet(spreadsheet)
+    email_body = sheet.acell('A2').value
+    return email_body
+
+def get_email_addresses(spreadsheet):
+    sheet = get_results_sheet(spreadsheet)
+    emails = sheet.col_values(7)[HEADER_OFFSET:]
+    authorized_col = sheet.col_values(8)[HEADER_OFFSET:]
+    sent_col = sheet.col_values(9)[HEADER_OFFSET:]
+    addresses = []
+    rows = []
+
+    inds = range(len(emails))
+    for email, auth, sent, index in zip(emails, authorized_col, sent_col, inds):
+        if email == "NO EMAILS FOUND":
+            continue
+        if auth == "No":
+            continue
+        if sent != "Yes":
+            address_list = email.split(',')
+            addresses += address_list
+            rows.append(index + 2)
+    return addresses, rows
+
+def store_email_history(spreadseet, rows):
+    sheet = get_results_sheet(spreadseet)
+    last_row = get_last_row(sheet, 9)
+    cell_range = 'I2:J'+str(last_row)
+    cell_list = np.array(sheet.range(cell_range))
+    cell_list = np.reshape(cell_list, (int(len(cell_list)/2), 2))
+    for row in rows:
+        cell_row = cell_list[row-2]
+        cell_row[0].value = 'Yes'
+        cell_row[1].value = str(date.today())
+    cell_list = np.ndarray.flatten(cell_list)
+    sheet.update_cells(list(cell_list))
 
 if __name__ == "__main__":
     s = open_spreadsheet()

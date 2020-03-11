@@ -61,6 +61,8 @@ class Website:
             print('url: ', child_url)
             if child_url==self.base_url or child_url==self.domain or 'contact' in child_url:
                 use_selenium = True
+            else:
+                use_selenium = False
             child_page = Page(child_url, keywords, self.domain, use_selenium=use_selenium)
 
             if not child_page.request_successful:
@@ -75,7 +77,7 @@ class Website:
             # add links to queue
             queue.extend(other_links)
             queue.extendleft(priority_links[::-1])
-            pdb.set_trace()
+
             # add url of child to set of visited links
             self.all_links.add(child_page.url)
             self.emails.update(child_page.emails)

@@ -13,6 +13,8 @@ from urllib.error import HTTPError
 from urllib.request import Request
 from urllib.error import URLError
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from socket import timeout
 
 import pdb
 
@@ -20,8 +22,10 @@ class Page():
     def __init__(self, url, keywords, domain=None, use_selenium=False):
         self.url = url
         self.tld = urlparse(url).hostname
+
         header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',}
+       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3'}
         # set domain
         if domain is None:
             self.domain = urlparse(url).netloc
@@ -35,7 +39,7 @@ class Page():
         try:
             # open up the URL
             request = Request(url, None, header)
-            response = urlopen(request, timeout=20)
+            response = urlopen(request, timeout=10)
             self.page = BeautifulSoup(response.read(), "lxml")
 
             # a histogram representing the frequency of categories of keywords
@@ -46,6 +50,10 @@ class Page():
             print('Warning, the following error was encountered')
             print(e)
 
+            self.request_successful = False
+            pass
+        except timeout:
+            print('Request timed out')
             self.request_successful = False
             pass
 
@@ -105,7 +113,13 @@ class Page():
         # Initialize the driver
         chrome_path = r"/usr/bin/chromedriver"
         driver = webdriver.Chrome(chrome_path)
-        driver.get(self.url)
+        driver.set_page_load_timeout(15)
+        try:
+            driver.get(self.url)
+        except TimeoutException as ex:
+            print('selenium chromedriver timeout :()')
+            driver.close()
+            return []
 
         # wait for site to load assets
         import time
@@ -153,5 +167,7 @@ class Page():
 
 
 if __name__ == "__main__":
-    p = Page('https://bostonlasers.com/contact', ['lmao'], use_selenium=True)
+    p = Page('https://www.python.org', ['lmao'], use_selenium=False)
+    p = Page('https://www.seamless.com/food/margaritas_mexican_restaurant/ma-wellesley', ['lmao'], use_selenium=False)
+
     print(p.emails)
